@@ -1,0 +1,32 @@
+/*no se esta utilizando nada de estooooooooooo*/
+
+.app-container {
+  margin-top: 5px;
+  padding: 10px;
+  
+  
+    
+}
+
+.Header-title {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.header {
+  background-color: #fafafa;
+  padding: 15px;
+  margin-top: 0;
+}
+
+.footer {
+  background-color: #fafafa;
+  padding: 15px;
+  text-align: center;
+}
+
+.map-container {
+  height: 500px;
+  width: 100%; 
+  margin: 0px;
+}
