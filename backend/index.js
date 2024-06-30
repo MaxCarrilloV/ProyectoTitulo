@@ -26,8 +26,10 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true'); // IMPORTANTE: Habilitar el manejo de credenciales
   next();
 });
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));// Para servir los archivos subidos
 
 // Función para crear una nueva carpeta con el ID de sesión y su tiempo de creación
+
 function crearCarpeta(sessionId) {
   const nombreCarpeta = sessionId;
   const rutaEspecifica = 'uploads/';

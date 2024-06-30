@@ -1,0 +1,50 @@
+import React from 'react';
+import './InfoControl.css';
+
+const PrControl = ({pr_max}) => {
+  pr_max = pr_max.toFixed(2);
+  let pr_nivel = pr_max/6;
+  pr_nivel = pr_nivel.toFixed(2);
+  let pr_nivel1 = pr_nivel*2;
+  pr_nivel1 = pr_nivel1.toFixed(2);
+  let pr_nivel2 = pr_nivel*3;
+  pr_nivel2 = pr_nivel2.toFixed(2);
+  let pr_nivel3 = pr_nivel*4;
+  pr_nivel3 = pr_nivel3.toFixed(2);
+  let pr_nivel4 = pr_nivel*5;
+  pr_nivel4 = pr_nivel4.toFixed(2);
+  
+  const colorRanges = [
+    { color: '#ff0000', range: `0-${pr_nivel} mm` },
+    { color: '#ff7f00', range: `${pr_nivel}-${pr_nivel1} mm` },
+    { color: '#ffff00', range: `${pr_nivel1}-${pr_nivel2} mm` },
+    { color: '#00ff00', range: `${pr_nivel2}-${pr_nivel3} mm` },
+    { color: '#0000ff', range: `${pr_nivel3}-${pr_nivel4} mm` },
+    { color: '#8b00ff', range: `${pr_nivel4}-${pr_max} mm` }
+  ];
+
+  return (
+    <div className="info-control">
+      <h4>Precipitación</h4>
+      <ul>
+        {colorRanges.map((item, index) => (
+          <li key={index}>
+            <span
+              style={{
+                backgroundColor: item.color,
+                display: 'inline-block',
+                width: '20px',
+                height: '20px',
+                marginRight: '5px',
+                opacity: 0.5
+              }}
+            ></span>
+            {item.range}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default PrControl;

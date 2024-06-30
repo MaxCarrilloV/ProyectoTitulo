@@ -80,11 +80,6 @@ function InicioSesion() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className='footer'>
-        <p>Nombre: Joaquin Alonso Bustos Torres.</p>
-        <p>Profesor guía: Clemente Rubio Manzano.</p>
-      </footer>
     </div>
   );
 
