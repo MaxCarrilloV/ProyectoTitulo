@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { set, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +10,7 @@ import GeoTiffMap from "./GeoTiffMap";
 import "./Formulario.css";
 import Menu from "./Menu";
 
-const PrecipitacionesN = () => {
+const Precipitaciones = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedFileName, setSelectedFileName] = useState("");
   const [fileConfirmed, setFileConfirmed] = useState(false);
@@ -39,9 +39,7 @@ const PrecipitacionesN = () => {
   }, []);
 
   const {
-    register,
     handleSubmit,
-    formState: { errors },
     setValue,
   } = useForm();
 
@@ -127,7 +125,7 @@ const PrecipitacionesN = () => {
             setCalendario(true);
             setUnits(response.data.mapa.units);
 
-            if (response.data.mapa.available_dates.length > 0) {
+            if (response.data.mapa.available_dates.length > 0  && response.data.mapa.units === "mm") {
               for (
                 let i = 0;
                 i < response.data.mapa.available_dates.length;
@@ -144,8 +142,19 @@ const PrecipitacionesN = () => {
               const month = (date.getMonth() + 1).toString().padStart(2, "0");
               const year = date.getFullYear();
               setSelectedDate(`${year}-${month}`);
+            }else{
+              setDates(response.data.mapa.available_dates);
+              setSelectedDate(response.data.mapa.available_dates[0]);
+            }
+            if (response.data.mapa.available_dates === "No time variable available") {
+              setDates([]);
             }
           }
+        })
+        .catch((error) => {
+          console.log("Error al enviar el archivo al backend:", error);
+          setLoading(false); // Cambiar el mensaje a "Archivo cargado" incluso en caso de error
+          setButtonsDisabled(false); // Habilitar el botón para habilitar los botones de archivo
         });
     }
   };
@@ -215,6 +224,8 @@ const PrecipitacionesN = () => {
   };
 
   const handleDateChange = (e) => {
+    setCoordenadas([]);
+    
     setMensaje("Servidor: Espere a que cargue el mapa por completo.");
     setMostrarAlertaTiempo(true);
     setSelectedDate(e.target.value);
@@ -299,15 +310,28 @@ const PrecipitacionesN = () => {
               />
             </Form.Group>
           )}
+          {dates.length > 0 && units === "mm/day" && (
+            <Form.Group>
+              <Form.Control
+                className="my-3"
+                value={selectedDate}
+                min={dates[0]}
+                max={dates[dates.length - 1]}
+                type="date"
+                disabled={!Calendario}
+                onChange={handleDateChange}
+              />
+            </Form.Group>
+          )}
+
           {dates.length <= 0 && (
             <Form.Group>
               <Form.Control
                 className="my-3"
                 type="date"
-                disabled={!Calendario}
+                disabled={true}
               />
             </Form.Group>
-
           )}
           <div className="error-message">
             {mostrarAlertaTiempo && (
@@ -331,9 +355,9 @@ const PrecipitacionesN = () => {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               />
-              <GeoTiffMap tiffUrl={coordenadas} features={features} />
+              <GeoTiffMap tiffUrl={coordenadas} />
 
-              <PrControl pr_max={pr_max} />
+              <PrControl pr_max={pr_max} units={units} />
             </MapContainer>
           </div>
         )}
@@ -341,6 +365,7 @@ const PrecipitacionesN = () => {
         {coordenadas.length <= 0 && (
           <div className="map-container mx-4">
             <MapContainer
+            className="ms-5"
               center={[-33.4489, -70.6693]}
               zoom={3}
               style={{ height: "600px", width: "100%" }}
@@ -356,4 +381,4 @@ const PrecipitacionesN = () => {
     </div>
   );
 };
-export default PrecipitacionesN;
+export default Precipitaciones;

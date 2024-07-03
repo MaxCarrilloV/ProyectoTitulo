@@ -1,10 +1,10 @@
-import React, { useEffect } from 'react';
+import  { useEffect } from 'react';
 import { useMap  } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import * as GeoTIFF from 'geotiff';
 
-const GeoTiffMap = ({ tiffUrl, features  }) => {
+const GeoTiffMap = ({ tiffUrl  }) => {
   const map = useMap();
 
   useEffect(() => {
@@ -45,7 +45,7 @@ const GeoTiffMap = ({ tiffUrl, features  }) => {
     };
 
     loadGeoTIFF();
-  }, [tiffUrl, map, features]);
+  }, [tiffUrl, map]);
 
   return null;
 };

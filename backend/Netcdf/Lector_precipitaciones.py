@@ -2,8 +2,6 @@ import netCDF4 as nc
 import numpy as np
 import json
 import sys
-import os
-import geopandas as gpd
 from rasterio.transform import from_origin
 import rasterio
 from matplotlib.colors import ListedColormap, BoundaryNorm
@@ -17,14 +15,14 @@ input_obj = json.loads(input_data)
 # Procesar los datos
 
 # Definir la escala de colores con mayor transparencia
-colors = ['#00000000',  # Transparente para valores negativos
-          '#ff000040',  # Rojo (50% transparencia) para 0-3 mm
-          '#ff7f0040',  # Anaranjado (50% transparencia) para 3-10 mm
-          '#ffff0040',  # Amarillo (50% transparencia) para 10-20 mm
-          '#00ff0040',  # Verde (50% transparencia) para 20-50 mm
-          '#0000ff40',  # Azul (50% transparencia) para 50-100 mm
-          '#8b00ff40']  # Violeta (50% transparencia) para >100 mm   # Violeta para >100 mm
-
+colors = ['#00000000',  
+          '#ff000040',  
+          '#ff7f0040',  
+          '#ffff0040',  
+          '#00ff0040',  
+          '#0000ff40',  
+          '#8b00ff40']  
+  
 cmap = ListedColormap(colors)
 
 
@@ -55,9 +53,15 @@ if 'pr' in dataset.variables:
 
         # Obtener la fecha correspondiente al tiempo deseado
         time_units = time_var.units
-        if num_times>1:
+        if '360_day' in time_units:
             desired_date = nc.num2date(time_values[desired_time], units=time_units, calendar='360_day')
             available_dates = [nc.num2date(time, units=time_units, calendar='360_day').strftime('%Y-%m-%d') for time in time_values]
+            day = min(desired_date.day, 30)  # Asegurarse de que el día no sea mayor a 30
+            desired_date = desired_date.replace(day=day)
+            available_dates = [date.replace(day=min(date.day, 30)) for date in available_dates]
+        else:
+            desired_date = nc.num2date(time_values[desired_time], units=time_units)
+            available_dates = [nc.num2date(time, units=time_units).strftime('%Y-%m-%d') for time in time_values]
         # Inicializar pr_max con un valor muy pequeño
         pr_max = -float('inf')
         # Invertir los valores de latitud y los datos correspondientes
@@ -112,7 +116,7 @@ if 'pr' in dataset.variables:
         metadata = {
             'driver': 'GTiff',
             'dtype': 'uint8',  # Cambiar a uint8 para los colores RGBA
-            'nodata': 0,
+            'nodata': 255,
             'width': len(lon_values),
             'height': len(lat_values),
             'count': 4,  # Cambiar a 4 para RGBA
@@ -129,7 +133,7 @@ if 'pr' in dataset.variables:
         with rasterio.open(output_file, 'w', **metadata) as dst:
             for i in range(4):  # Escribir cada canal RGBA
                 dst.write((pr_colored[:, :, i] * 255).astype(np.uint8), i+1)
-
+            
         # Enviar el resultado al proceso padre (Express) a través de la salida estándar
         result = f"{desired_time+1}/{num_times} Fecha: {formatted_date} "
         output_data = {
@@ -192,8 +196,17 @@ if 'pr' in dataset.variables:
         # Crear transform (requiere la resolución y las coordenadas de la esquina superior izquierda)
         res = (lon_values[1] - lon_values[0], lat_values[1] - lat_values[0])
         transform = from_origin(lon_values.min(), lat_values.max(), res[0], res[1])
-        bounds = [-9999, 0, 3, 10, 20, 50, 100,pr_max]
+        # Crear una matriz de colores aplicando el colormap
+        pr_nivel = pr_max/6
+        pr_nivel1 = pr_nivel*2
+        pr_nivel2 = pr_nivel*3
+        pr_nivel3 = pr_nivel*4
+        pr_nivel4 = pr_nivel*5
+        bounds = [-9999, 0, pr_nivel, pr_nivel1, pr_nivel2, pr_nivel3,pr_nivel4 ,pr_max]
         norm = BoundaryNorm(bounds,cmap.N)
+        pr_values = pr_values.filled(-9999)
+
+        pr_colored = cmap(norm(pr_values))
         # # Crear una matriz de colores aplicando el colormap
         pr_colored = cmap(norm(pr_values))
 
@@ -236,7 +249,7 @@ if 'pr' in dataset.variables:
                 'mensaje': mensaje,
                 'coordenadas': features,
                 'file': output_file,
-                'available_dates': ["No time variable available"]
+                'available_dates': "No time variable available"
             }
         }
 else:

@@ -2,14 +2,13 @@
 //import './App.css';
 import InicioSesion from './components/InicioSesion';
 import IndicesRH from './components/IndicesRH';
-import Temperaturas from './components/Temperaturas';
-import MapView from './components/MapView'
+import TemperaturasN from './components/TemperaturasN';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Menu from './components/Menu';
-import PrecipitacionN from './components/PrecipitacionesN';
+import PrecipitacionN from './components/Precipitaciones';
 
 
 
