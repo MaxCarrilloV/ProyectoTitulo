@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { set, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { useNavigate } from "react-router-dom";
@@ -24,7 +24,6 @@ const Temperaturas = () => {
   const [coordenadas, setCoordenadas] = useState([]);
   const [mapaActualizado, setMapaActualizado] = useState(false);
   const [mostrarAlertaTiempo, setMostrarAlertaTiempo] = useState(false);
-  const [features, setFeatures] = useState([]);
   const [t_max, setT_max] = useState([]);
   const [Calendario, setCalendario] = useState(false);
   const [dates, setDates] = useState([]);
@@ -64,7 +63,6 @@ const Temperaturas = () => {
         setDates([]);
         setSelectedDate();
         setUnits();
-        setFeatures([]);
         setCalendario(false);
         setT_max([]);
         setT_min([]);
@@ -104,7 +102,7 @@ const Temperaturas = () => {
             "variable incorrecta, porfavor carge un archivo netcdf de temperatura"
           ) {
             setMensaje(
-              "Servidor: Variable incorrecta, por favor carga un archivo netcdf con una variable de Precipitacion"
+              "Servidor: Variable incorrecta, por favor carga un archivo netcdf con una variable de tmin - tmax - t2m"
             );
             setMostrarAlertaArchivo(true);
             setTipoMensaje("danger");
@@ -120,7 +118,6 @@ const Temperaturas = () => {
             setMapaActualizado(true);
             setEnableButton(true);
             setValue("archivo", selectedFileName);
-            setFeatures(response.data.mapa.coordenadas);
             setT_max(response.data.mapa.t_max);
             setCoordenadas(response.data.mapa.file);
             setCalendario(true);
@@ -138,9 +135,10 @@ const Temperaturas = () => {
             }
 
             if (
-              response.data.mapa.available_dates.length > 0 &&
-              (response.data.mapa.nombre_largo === "mean daily maximum temperature" || response.data.mapa.nombre_largo === "mean daily minimum temperature") ||
-              (response.data.mapa.nombre_largo === "daily mean 2-meter temperature")
+              (response.data.mapa.available_dates.length > 0) && 
+              ((response.data.mapa.nombre_largo === "mean daily maximum temperature" || 
+              response.data.mapa.nombre_largo === "mean daily minimum temperature") || 
+              response.data.mapa.nombre_largo === "daily mean 2-meter temperature")
             ) {
               for (
                 let i = 0;
@@ -227,11 +225,26 @@ const Temperaturas = () => {
     }
     if (fileConfirmed) {
       let tiempo;
+      if (data < dates[0] || data> dates[dates.length - 1]) {
+        setMensaje("Servidor: Fecha no disponible, seleccione otra fecha");
+        setMostrarAlertaTiempo(true);
+        setTipoMensaje("danger");
+        return;
+      }
       for (let i = 0; i < dates.length; i++) {
         if (dates[i] === data) {
           tiempo = i;
         }
       }
+      tiempo = tiempo + 1;
+      console.log(tiempo);
+      //corrobar que el tiempo este dentro de los valores permitidos
+      if (tiempo > dates.length || tiempo < 1) {
+        setMensaje("Servidor: Tiempo no disponible, seleccione otro tiempo");
+        setMostrarAlertaTiempo(true);
+        setTipoMensaje("danger");
+        return;
+      } 
       tiempo = tiempo + 1;
       axios
         .post("/api/enviar-tiempo-temperatura", { tiempo: tiempo })
@@ -243,7 +256,6 @@ const Temperaturas = () => {
           setFileConfirmed(true);
           setMapaActualizado(true);
           setEnableButton(true);
-          setFeatures(response.data.mapa.coordenadas);
           setT_max(response.data.mapa.t_max);
           setCoordenadas(response.data.mapa.file);
           setCalendario(true);
@@ -256,7 +268,7 @@ const Temperaturas = () => {
 
   const handleDateChange = (e) => {
     setCoordenadas([]);
-
+    setTipoMensaje("info");
     setMensaje("Servidor: Espere a que cargue el mapa por completo.");
     setMostrarAlertaTiempo(true);
     setSelectedDate(e.target.value);
@@ -282,7 +294,6 @@ const Temperaturas = () => {
 
           <Button
             className="my-3"
-            variant="secondary"
             type="button"
             onClick={enviarArchivo}
             disabled={buttonsDisabled} // Deshabilitar el botón de confirmar archivo
@@ -303,7 +314,7 @@ const Temperaturas = () => {
 
           {fileConfirmed && enableButton && (
             <Button
-              variant="secondary"
+              
               className="my-3 mx-1"
               type="button"
               onClick={() => {
@@ -376,6 +387,7 @@ const Temperaturas = () => {
         </Form>
         {coordenadas?.length > 0 && (
           <div className="map-container mx-4">
+            <h2 >Temperatura {nombreLargo} </h2>
             <MapContainer
               center={[-33.4489, -70.6693]}
               zoom={3}
@@ -399,6 +411,7 @@ const Temperaturas = () => {
 
         {coordenadas.length <= 0 && (
           <div className="map-container mx-4">
+            <h2 className="ms-5">Temperatura </h2>
             <MapContainer
               className="ms-5"
               center={[-33.4489, -70.6693]}

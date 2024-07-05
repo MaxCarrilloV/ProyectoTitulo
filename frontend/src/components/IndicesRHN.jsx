@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { set, useForm } from "react-hook-form";
+import {useForm } from "react-hook-form";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +10,7 @@ import GeoTiffMap from "./GeoTiffMap";
 import "./Formulario.css";
 import Menu from "./Menu";
 
-const Precipitaciones = () => {
+const IndicesRHN = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedFileName, setSelectedFileName] = useState("");
   const [fileConfirmed, setFileConfirmed] = useState(false);
@@ -24,7 +24,7 @@ const Precipitaciones = () => {
   const [coordenadas, setCoordenadas] = useState([]);
   const [mapaActualizado, setMapaActualizado] = useState(false);
   const [mostrarAlertaTiempo, setMostrarAlertaTiempo] = useState(false);
-  const [pr_max, setPr_max] = useState([]);
+  const [ih_max, setih_max] = useState([]);
   const [Calendario, setCalendario] = useState(false);
   const [dates, setDates] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -57,7 +57,7 @@ const Precipitaciones = () => {
 
   const borrarArchivos = () => {
     axios
-      .delete("/api/borrar-archivos")
+      .delete("/api/borrar-archivos-indicerh")
       .then((response) => {
         console.log("Archivos eliminados:", response.data);
         setCoordenadas([]);
@@ -66,7 +66,7 @@ const Precipitaciones = () => {
         setSelectedDate();
         setUnits();
         setCalendario(false);
-        setPr_max([]);
+        setih_max([]);
         setNombre("");
       })
       .catch((error) => {
@@ -91,7 +91,7 @@ const Precipitaciones = () => {
       setLoading(true); // Mostrar el mensaje de "Cargando archivo"
       setButtonsDisabled(true);
       axios
-        .post("/api/subir-archivo", formData, {
+        .post("/api/subir-archivo-indicerh", formData, {
           headers: {
             Authorization: `Bearer ${Cookies.get("sessionId")}`,
           },
@@ -100,10 +100,10 @@ const Precipitaciones = () => {
           const IsExito = response.data.mapa.mensaje;
           if (
             IsExito ===
-            "variable incorrecta, porfavor carge un archivo netcdf de Precipitaciones"
+            "variable incorrecta, porfavor carge un archivo netcdf de Indices de riesgo hidrico"
           ) {
             setMensaje(
-              "Servidor: Variable incorrecta, por favor carga un archivo netcdf con una variable de pr"
+              "Servidor: Variable incorrecta, por favor carga un archivo netcdf con una variable de ih"
             );
             setMostrarAlertaArchivo(true);
             setTipoMensaje("danger");
@@ -119,17 +119,17 @@ const Precipitaciones = () => {
             setMapaActualizado(true);
             setEnableButton(true);
             setValue("archivo", selectedFileName);
-            setPr_max(response.data.mapa.pr_max);
+            setih_max(response.data.mapa.ih_max);
             setCoordenadas(response.data.mapa.file);
             setCalendario(true);
             setUnits(response.data.mapa.units);
-            if(response.data.mapa.units === "mm"){
+            if(response.data.mapa.units === "mm"){ //cambiar a units correspondiente
               setNombre("mensual");
             }else{
               setNombre("diaria");
             }
 
-            if (response.data.mapa.available_dates.length > 0  && response.data.mapa.units === "mm") {
+            if (response.data.mapa.available_dates.length > 0  && response.data.mapa.units === "mm") { //cambiar a units correspondiente
               for (
                 let i = 0;
                 i < response.data.mapa.available_dates.length;
@@ -199,7 +199,7 @@ const Precipitaciones = () => {
       let tiempo;
       //corroborar que la fecha este dentro de los valores permitidos
       if (data < dates[0] || data> dates[dates.length - 1]) {
-        setMensaje("Servidor: Fecha no disponible, seleccione otra fecha");
+        setMensaje("Servidor: Fecha no disponible, seleccione otra fecha.");
         setMostrarAlertaTiempo(true);
         setTipoMensaje("danger");
         return;
@@ -213,13 +213,13 @@ const Precipitaciones = () => {
       console.log(tiempo);
       //corrobar que el tiempo este dentro de los valores permitidos
       if (tiempo > dates.length || tiempo < 1) {
-        setMensaje("Servidor: Tiempo no disponible, seleccione otro tiempo");
+        setMensaje("Servidor: Tiempo no disponible, seleccione otro tiempo.");
         setMostrarAlertaTiempo(true);
         setTipoMensaje("danger");
         return;
       } 
       axios
-        .post("/api/enviar-tiempo", { tiempo: tiempo })
+        .post("/api/enviar-tiempo-indicerh", { tiempo: tiempo })
         .then((response) => {
             console.log(response.data);
             
@@ -228,7 +228,7 @@ const Precipitaciones = () => {
             setFileConfirmed(true);
             setMapaActualizado(true);
             setEnableButton(true);
-            setPr_max(response.data.mapa.pr_max);
+            setih_max(response.data.mapa.pr_max);
             setCoordenadas(response.data.mapa.file);
             setCalendario(true);
             setUnits(response.data.mapa.units);
@@ -313,7 +313,7 @@ const Precipitaciones = () => {
               </span>
             )}
           </label>
-          {dates.length > 0 && units === "mm" && (
+          {dates.length > 0 && units === "mm" && ( //cambiar a units correspondiente
             <Form.Group>
               <Form.Control
                 className="my-3"
@@ -326,7 +326,7 @@ const Precipitaciones = () => {
               />
             </Form.Group>
           )}
-          {dates.length > 0 && units === "mm/day" && (
+          {dates.length > 0 && units === "mm/day" && ( //cambiar a units correspondiente
             <Form.Group>
               <Form.Control
                 className="my-3"
@@ -362,7 +362,7 @@ const Precipitaciones = () => {
         </Form>
         {coordenadas?.length > 0 && (
           <div className="map-container mx-4">
-            <h2 >Precipitación {nombre}</h2>
+            <h2 >Índice de Riesgo Hídrico</h2>
             <MapContainer
               center={[-33.4489, -70.6693]}
               zoom={3}
@@ -374,14 +374,14 @@ const Precipitaciones = () => {
               />
               <GeoTiffMap tiffUrl={coordenadas} />
 
-              <PrControl pr_max={pr_max} units={units} />
+              <PrControl pr_max={ih_max} units={units} />
             </MapContainer>
           </div>
         )}
 
         {coordenadas.length <= 0 && (
           <div className="map-container mx-4">
-            <h2 className="ms-5">Precipitación</h2>
+            <h2 className="ms-5">Índice de Riesgo Hídrico</h2>
             <MapContainer
             className="ms-5"
               center={[-33.4489, -70.6693]}
@@ -399,4 +399,4 @@ const Precipitaciones = () => {
     </div>
   );
 };
-export default Precipitaciones;
+export default IndicesRHN;

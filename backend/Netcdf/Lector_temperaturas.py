@@ -59,8 +59,8 @@ if 'tmax' in dataset.variables:
             desired_date = desired_date.replace(day=day)
             available_dates = [date.replace(day=min(date.day, 30)) for date in available_dates]
         else:
-            desired_date = nc.num2date(time_values[desired_time], units=time_units)
-            available_dates = [nc.num2date(time, units=time_units).strftime('%Y-%m-%d') for time in time_values]
+            desired_date = nc.num2date(time_values[desired_time], units=time_units, calendar='360_day')
+            available_dates = [nc.num2date(time, units=time_units, calendar='360_day').strftime('%Y-%m-%d') for time in time_values]
 
         # creamos listas para almacenar coordenadas y temperaturas por separado
         features = []
@@ -274,8 +274,8 @@ elif 'tmin' in dataset.variables:
             desired_date = desired_date.replace(day=day)
             available_dates = [date.replace(day=min(date.day, 30)) for date in available_dates]
         else:
-            desired_date = nc.num2date(time_values[desired_time], units=time_units)
-            available_dates = [nc.num2date(time, units=time_units).strftime('%Y-%m-%d') for time in time_values]
+            desired_date = nc.num2date(time_values[desired_time], units=time_units, calendar='360_day')
+            available_dates = [nc.num2date(time, units=time_units, calendar='360_day').strftime('%Y-%m-%d') for time in time_values]
 
         # creamos listas para almacenar coordenadas y temperaturas por separado
         features = []

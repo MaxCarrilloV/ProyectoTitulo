@@ -37,12 +37,20 @@ desired_time = numero_time - 1
 
 # Abrir el archivo NetCDF
 dataset = nc.Dataset(file_path)
-if 'pr' in dataset.variables:
+if 'pr' in dataset.variables or 'pcp' in dataset.variables:
     if 'time' in dataset.variables:
         # Obtener las variables necesarias
-        pr_var = dataset.variables['pr']
-        lon_var = dataset.variables['lon']
-        lat_var = dataset.variables['lat']
+        if 'pr' in dataset.variables:
+            pr_var = dataset.variables['pr']
+            lon_var = dataset.variables['lon']
+            lat_var = dataset.variables['lat']
+        else:
+            pr_var = dataset.variables['pcp']
+            lon_var = dataset.variables['Longitude']
+            lat_var = dataset.variables['Latitude']
+        
+
+        
         time_var = dataset.variables['time']
 
         # Obtener los valores de las variables
@@ -53,15 +61,17 @@ if 'pr' in dataset.variables:
 
         # Obtener la fecha correspondiente al tiempo deseado
         time_units = time_var.units
-        if '360_day' in time_units:
+        if 'calendar' in time_var.ncattrs():
+            time_calendar = time_var.calendar
+            if 'proleptic_gregorian' in time_calendar:
+                desired_date = nc.num2date(time_values[desired_time], units=time_units ,calendar='proleptic_gregorian')
+                available_dates = [nc.num2date(time, units=time_units,calendar='proleptic_gregorian').strftime('%Y-%m-%d') for time in time_values]
+            elif 'standard' in time_calendar:
+                desired_date = nc.num2date(time_values[desired_time], units=time_units, calendar='standard')
+                available_dates = [nc.num2date(time, units=time_units, calendar='standard').strftime('%Y-%m-%d') for time in time_values]
+        else:
             desired_date = nc.num2date(time_values[desired_time], units=time_units, calendar='360_day')
             available_dates = [nc.num2date(time, units=time_units, calendar='360_day').strftime('%Y-%m-%d') for time in time_values]
-            day = min(desired_date.day, 30)  # Asegurarse de que el día no sea mayor a 30
-            desired_date = desired_date.replace(day=day)
-            available_dates = [date.replace(day=min(date.day, 30)) for date in available_dates]
-        else:
-            desired_date = nc.num2date(time_values[desired_time], units=time_units)
-            available_dates = [nc.num2date(time, units=time_units).strftime('%Y-%m-%d') for time in time_values]
         # Inicializar pr_max con un valor muy pequeño
         pr_max = -float('inf')
         # Invertir los valores de latitud y los datos correspondientes
@@ -70,8 +80,9 @@ if 'pr' in dataset.variables:
         for t in range(num_times):
             if t == desired_time:
                 pr_values = pr_var[t, :, :]
-                pr_values = pr_values[::-1, :]
-                lat_values = lat_values[::-1]
+                if 'pr' in dataset.variables:
+                    pr_values = pr_values[::-1, :]
+                    lat_values = lat_values[::-1]
                 for j in range(len(lat_values)):
                     for k in range(len(lon_values)):
                         pr = pr_values[j, k]
@@ -146,7 +157,6 @@ if 'pr' in dataset.variables:
                 'coordenadas': features,
                 'file': output_file,
                 'available_dates': available_dates,
-
             }
         }
     else:
