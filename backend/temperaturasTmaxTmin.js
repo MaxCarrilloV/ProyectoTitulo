@@ -31,7 +31,10 @@ const subirArchivoTemperatura = (req, res) => {
             const data = {
                 archivo: path.join(__dirname, nuevaRuta),
                 numero_time: tiempo,
-                session_id: sessionId
+                session_id: sessionId,
+                t_variable: req.body.t_variable,
+                lon_variable: req.body.lon_variable,
+                lat_variable: req.body.lat_variable,
             };
         
             
@@ -65,7 +68,10 @@ const enviarTiempoTemperatura = (req, res) => {
         const data = {
             archivo: path.join(__dirname, './uploads/',sessionId,'/temperatura_'+sessionId+'.nc'),
             numero_time: tiempoEntero,
-            session_id: sessionId
+            session_id: sessionId,
+            t_variable: req.body.t_variable,
+            lon_variable: req.body.lon_variable,
+            lat_variable: req.body.lat_variable,
         };
      
         Netcdf_temperatura.procesarDatos(data, res);

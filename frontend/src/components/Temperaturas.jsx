@@ -31,6 +31,9 @@ const Temperaturas = () => {
   const [units, setUnits] = useState();
   const [nombreLargo, setnombreLargo] = useState();
   const [t_min, setT_min] = useState([]);
+  const [tVariable, setTVariable] = useState("");
+  const [lonVariable, setLonVariable] = useState("");
+  const [latVariable, setLatVariable] = useState("");
 
   useEffect(() => {
     // Obtener el sessionId de las cookies y configurarlo en el encabezado de la solicitud
@@ -67,6 +70,9 @@ const Temperaturas = () => {
         setT_max([]);
         setT_min([]);
         setnombreLargo();
+        setTVariable("");
+        setLonVariable("");
+        setLatVariable("");
       })
       .catch((error) => {
         console.error("Error al borrar los archivos:", error);
@@ -83,9 +89,39 @@ const Temperaturas = () => {
       console.log(Cookies.get("sessionId"));
       navigate("/");
     }
+    // Verificar que las variables no estén vacías, no contengan espacios y no sean números
+    const validateVariable = (variable) => {
+      const hasSpaces = /\s/.test(variable);
+      const isNumber = /^\d+$/.test(variable);
+      return variable && !hasSpaces && !isNumber;
+    };
+
+    if (!validateVariable(tVariable)) {
+      setMensaje("Nombre de la variable de precipitación inválido");
+      setMostrarAlertaArchivo(true);
+      setTipoMensaje("danger");
+      return;
+    }
+
+    if (!validateVariable(lonVariable)) {
+      setMensaje("Nombre de la variable de longitud inválido");
+      setMostrarAlertaArchivo(true);
+      setTipoMensaje("danger");
+      return;
+    }
+
+    if (!validateVariable(latVariable)) {
+      setMensaje("Nombre de la variable de latitud inválido");
+      setMostrarAlertaArchivo(true);
+      setTipoMensaje("danger");
+      return;
+    }
     if (selectedFile) {
       const formData = new FormData();
       formData.append("archivo", selectedFile);
+      formData.append("t_variable", tVariable);
+      formData.append("lon_variable", lonVariable);
+      formData.append("lat_variable", latVariable);
       console.log(Cookies.get());
       setLoading(true); // Mostrar el mensaje de "Cargando archivo"
       setButtonsDisabled(true);
@@ -133,7 +169,13 @@ const Temperaturas = () => {
                 setUnits("Celsius/day");
               }
             }
-
+            if (response.data.mapa.nombre_largo === "2 meter temperature") {
+              setnombreLargo("2 metros");
+              setUnits("Celsius");
+            }
+            if (response.data.mapa.time.includes('seconds') || response.data.mapa.time.includes('day')) {
+              setUnits("Celsius/day");
+            }
             if (
               (response.data.mapa.available_dates.length > 0) && 
               ((response.data.mapa.nombre_largo === "mean daily maximum temperature" || 
@@ -247,7 +289,7 @@ const Temperaturas = () => {
       } 
       tiempo = tiempo + 1;
       axios
-        .post("/api/enviar-tiempo-temperatura", { tiempo: tiempo })
+        .post("/api/enviar-tiempo-temperatura", { tiempo: tiempo,t_variable:tVariable,lon_variable:lonVariable,lat_variable:latVariable })
         .then((response) => {
           console.log(response.data);
 
@@ -288,6 +330,39 @@ const Temperaturas = () => {
               accept=".nc"
               capture="environment"
               onChange={handleFileChange}
+              disabled={buttonsDisabled}
+            />
+          </Form.Group>
+          <Form.Group>
+            <Form.Control
+              id="prVariableInput"
+              className="my-3"
+              type="text"
+              value={tVariable}
+              placeholder="Nombre de la variable de precipitación"
+              onChange={(e) => setTVariable(e.target.value)}
+              disabled={buttonsDisabled}
+            />
+          </Form.Group>
+          <Form.Group>
+            <Form.Control
+              id="lonVariableInput"
+              className="my-3"
+              type="text"
+              value={lonVariable}
+              placeholder="Nombre de la variable de longitud"
+              onChange={(e) => setLonVariable(e.target.value)}
+              disabled={buttonsDisabled}
+            />
+          </Form.Group>
+          <Form.Group>
+            <Form.Control
+              id="latVariableInput"
+              className="my-3"
+              type="text"
+              value={latVariable}
+              placeholder="Nombre de la variable de latitud"
+              onChange={(e) => setLatVariable(e.target.value)}
               disabled={buttonsDisabled}
             />
           </Form.Group>
@@ -351,7 +426,7 @@ const Temperaturas = () => {
               />
             </Form.Group>
           )}
-          {dates.length > 0 && units === "Celsius/day" && (
+          {dates.length > 0 && ((units === "Celsius/day") || (units === "unknown")) && (
             <Form.Group>
               <Form.Control
                 className="my-3"

@@ -1,7 +1,7 @@
 //import logo from './logo.svg';
 //import './App.css';
 import InicioSesion from './components/InicioSesion';
-import IndicesRHN from './components/IndicesRHN';
+import IndicesRH from './components/IndicesRH';
 import Temperaturas from './components/Temperaturas';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import axios from 'axios';
@@ -30,7 +30,7 @@ axios.defaults.headers.common['Authorization'] = `Bearer ${Cookies.get('sessionI
         {/* Ruta para el componente Precipitaciones */}
         <Route path="/precipitaciones" element={<Precipitacion />} />
         {/* Ruta para el componente Indices */}
-        <Route path="/indicesrh" element={<IndicesRHN />} />
+        <Route path="/indicesrh" element={<IndicesRH />} />
         {/* Ruta para el componente Temperaturas */}
         <Route path="/temperaturas" element={<Temperaturas />} />
       </Routes>

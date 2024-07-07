@@ -31,10 +31,11 @@ const subirArchivoPrecipitaciones = (req, res) => {
             const data = {
                 archivo: path.join(__dirname, nuevaRuta),
                 numero_time: tiempo,
-                session_id: sessionId
+                session_id: sessionId,
+                pr_variable: req.body.pr_variable,
+                lon_variable: req.body.lon_variable,
+                lat_variable: req.body.lat_variable,
             };
-        
-            
             Netcdf_precipitaciones.procesarDatos(data, res);
             console.log('Tiempo recibido:', tiempo);
             } else {
@@ -65,7 +66,10 @@ const enviarTiempoPrecipitaciones = (req, res) => {
         const data = {
             archivo: path.join(__dirname, './uploads/',sessionId,'/precipitaciones_'+sessionId+'.nc'),
             numero_time: tiempoEntero,
-            session_id: sessionId
+            session_id: sessionId,
+            pr_variable: req.body.pr_variable,
+            lon_variable: req.body.lon_variable,
+            lat_variable: req.body.lat_variable,
         };
     
         Netcdf_precipitaciones.procesarDatos(data, res);

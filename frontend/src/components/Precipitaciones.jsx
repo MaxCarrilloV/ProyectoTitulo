@@ -30,6 +30,9 @@ const Precipitaciones = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [units, setUnits] = useState();
   const [nombre, setNombre] = useState("");
+  const [prVariable, setPrVariable] = useState("");
+  const [lonVariable, setLonVariable] = useState("");
+  const [latVariable, setLatVariable] = useState("");
 
   useEffect(() => {
     // Obtener el sessionId de las cookies y configurarlo en el encabezado de la solicitud
@@ -38,10 +41,7 @@ const Precipitaciones = () => {
     )}`;
   }, []);
 
-  const {
-    handleSubmit,
-    setValue,
-  } = useForm();
+  const { handleSubmit, setValue } = useForm();
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -68,6 +68,9 @@ const Precipitaciones = () => {
         setCalendario(false);
         setPr_max([]);
         setNombre("");
+        setPrVariable("");
+        setLonVariable("");
+        setLatVariable("");
       })
       .catch((error) => {
         console.error("Error al borrar los archivos:", error);
@@ -84,9 +87,39 @@ const Precipitaciones = () => {
       console.log(Cookies.get("sessionId"));
       navigate("/");
     }
+    // Verificar que las variables no estén vacías, no contengan espacios y no sean números
+    const validateVariable = (variable) => {
+      const hasSpaces = /\s/.test(variable);
+      const isNumber = /^\d+$/.test(variable);
+      return variable && !hasSpaces && !isNumber;
+    };
+
+    if (!validateVariable(prVariable)) {
+      setMensaje("Nombre de la variable de precipitación inválido");
+      setMostrarAlertaArchivo(true);
+      setTipoMensaje("danger");
+      return;
+    }
+
+    if (!validateVariable(lonVariable)) {
+      setMensaje("Nombre de la variable de longitud inválido");
+      setMostrarAlertaArchivo(true);
+      setTipoMensaje("danger");
+      return;
+    }
+
+    if (!validateVariable(latVariable)) {
+      setMensaje("Nombre de la variable de latitud inválido");
+      setMostrarAlertaArchivo(true);
+      setTipoMensaje("danger");
+      return;
+    }
     if (selectedFile) {
       const formData = new FormData();
       formData.append("archivo", selectedFile);
+      formData.append("pr_variable", prVariable);
+      formData.append("lon_variable", lonVariable);
+      formData.append("lat_variable", latVariable);
       console.log(Cookies.get());
       setLoading(true); // Mostrar el mensaje de "Cargando archivo"
       setButtonsDisabled(true);
@@ -100,10 +133,10 @@ const Precipitaciones = () => {
           const IsExito = response.data.mapa.mensaje;
           if (
             IsExito ===
-            "variable incorrecta, porfavor carge un archivo netcdf de Precipitaciones"
+            "variable incorrecta, por favor cargue un archivo netcdf de Precipitaciones"
           ) {
             setMensaje(
-              "Servidor: Variable incorrecta, por favor carga un archivo netcdf con una variable de pr"
+              "Servidor: Variable incorrecta, por favor cargue un archivo netcdf de Precipitaciones"
             );
             setMostrarAlertaArchivo(true);
             setTipoMensaje("danger");
@@ -123,13 +156,16 @@ const Precipitaciones = () => {
             setCoordenadas(response.data.mapa.file);
             setCalendario(true);
             setUnits(response.data.mapa.units);
-            if(response.data.mapa.units === "mm"){
+            if (response.data.mapa.units === "mm") {
               setNombre("mensual");
-            }else{
+            } else {
               setNombre("diaria");
             }
 
-            if (response.data.mapa.available_dates.length > 0  && response.data.mapa.units === "mm") {
+            if (
+              response.data.mapa.available_dates.length > 0 &&
+              response.data.mapa.units === "mm"
+            ) {
               for (
                 let i = 0;
                 i < response.data.mapa.available_dates.length;
@@ -146,11 +182,14 @@ const Precipitaciones = () => {
               const month = (date.getMonth() + 1).toString().padStart(2, "0");
               const year = date.getFullYear();
               setSelectedDate(`${year}-${month}`);
-            }else{
+            } else {
               setDates(response.data.mapa.available_dates);
               setSelectedDate(response.data.mapa.available_dates[0]);
             }
-            if (response.data.mapa.available_dates === "No time variable available") {
+            if (
+              response.data.mapa.available_dates ===
+              "No time variable available"
+            ) {
               setDates([]);
             }
           }
@@ -171,17 +210,17 @@ const Precipitaciones = () => {
   useEffect(() => {
     // Establecer un tiempo de vida para la alerta de archivo (ejemplo: 5 segundos)
     const timeoutArchivo = setTimeout(() => {
-      setMostrarAlertaArchivo(false); 
+      setMostrarAlertaArchivo(false);
     }, 5000);
 
     // Establecer un tiempo de vida para la alerta de tiempo (ejemplo: 5 segundos)
     const timeoutTiempo = setTimeout(() => {
-      setMostrarAlertaTiempo(false); 
+      setMostrarAlertaTiempo(false);
     }, 5000);
 
     return () => {
-      clearTimeout(timeoutArchivo); 
-      clearTimeout(timeoutTiempo); 
+      clearTimeout(timeoutArchivo);
+      clearTimeout(timeoutTiempo);
     };
   }, [mostrarAlertaArchivo, mostrarAlertaTiempo]);
 
@@ -198,7 +237,7 @@ const Precipitaciones = () => {
     if (fileConfirmed) {
       let tiempo;
       //corroborar que la fecha este dentro de los valores permitidos
-      if (data < dates[0] || data> dates[dates.length - 1]) {
+      if (data < dates[0] || data > dates[dates.length - 1]) {
         setMensaje("Servidor: Fecha no disponible, seleccione otra fecha");
         setMostrarAlertaTiempo(true);
         setTipoMensaje("danger");
@@ -217,23 +256,21 @@ const Precipitaciones = () => {
         setMostrarAlertaTiempo(true);
         setTipoMensaje("danger");
         return;
-      } 
+      }
       axios
-        .post("/api/enviar-tiempo", { tiempo: tiempo })
+        .post("/api/enviar-tiempo", { tiempo: tiempo,pr_variable:prVariable,lon_variable:lonVariable,lat_variable:latVariable })
         .then((response) => {
-            console.log(response.data);
-            
-            setTipoMensaje("info");
-            setLoading(false);
-            setFileConfirmed(true);
-            setMapaActualizado(true);
-            setEnableButton(true);
-            setPr_max(response.data.mapa.pr_max);
-            setCoordenadas(response.data.mapa.file);
-            setCalendario(true);
-            setUnits(response.data.mapa.units);
+          console.log(response.data);
 
-            
+          setTipoMensaje("info");
+          setLoading(false);
+          setFileConfirmed(true);
+          setMapaActualizado(true);
+          setEnableButton(true);
+          setPr_max(response.data.mapa.pr_max);
+          setCoordenadas(response.data.mapa.file);
+          setCalendario(true);
+          setUnits(response.data.mapa.units);
         })
         .catch((error) => {
           console.log("Error al enviar el tiempo al backend:", error);
@@ -248,7 +285,6 @@ const Precipitaciones = () => {
     setMostrarAlertaTiempo(true);
     setSelectedDate(e.target.value);
     onSubmit(e.target.value);
-    
   };
 
   return (
@@ -267,7 +303,39 @@ const Precipitaciones = () => {
               disabled={buttonsDisabled}
             />
           </Form.Group>
-
+          <Form.Group>
+            <Form.Control
+              id="prVariableInput"
+              className="my-3"
+              type="text"
+              value={prVariable}
+              placeholder="Nombre de la variable de precipitación"
+              onChange={(e) => setPrVariable(e.target.value)}
+              disabled={buttonsDisabled}
+            />
+          </Form.Group>
+          <Form.Group>
+            <Form.Control
+              id="lonVariableInput"
+              className="my-3"
+              type="text"
+              value={lonVariable}
+              placeholder="Nombre de la variable de longitud"
+              onChange={(e) => setLonVariable(e.target.value)}
+              disabled={buttonsDisabled}
+            />
+          </Form.Group>
+          <Form.Group>
+            <Form.Control
+              id="latVariableInput"
+              className="my-3"
+              type="text"
+              value={latVariable}
+              placeholder="Nombre de la variable de latitud"
+              onChange={(e) => setLatVariable(e.target.value)}
+              disabled={buttonsDisabled}
+            />
+          </Form.Group>
           <Button
             className="my-3"
             type="button"
@@ -326,7 +394,7 @@ const Precipitaciones = () => {
               />
             </Form.Group>
           )}
-          {dates.length > 0 && units === "mm/day" && (
+          {dates.length > 0 && ((units === "mm/day") || (units === "mm/h") || (units === "unknown")) && (
             <Form.Group>
               <Form.Control
                 className="my-3"
@@ -342,11 +410,7 @@ const Precipitaciones = () => {
 
           {dates.length <= 0 && (
             <Form.Group>
-              <Form.Control
-                className="my-3"
-                type="date"
-                disabled={true}
-              />
+              <Form.Control className="my-3" type="date" disabled={true} />
             </Form.Group>
           )}
           <div className="error-message">
@@ -362,7 +426,7 @@ const Precipitaciones = () => {
         </Form>
         {coordenadas?.length > 0 && (
           <div className="map-container mx-4">
-            <h2 >Precipitación {nombre}</h2>
+            <h2>Precipitación {nombre}</h2>
             <MapContainer
               center={[-33.4489, -70.6693]}
               zoom={3}
@@ -383,7 +447,7 @@ const Precipitaciones = () => {
           <div className="map-container mx-4">
             <h2 className="ms-5">Precipitación</h2>
             <MapContainer
-            className="ms-5"
+              className="ms-5"
               center={[-33.4489, -70.6693]}
               zoom={3}
               style={{ height: "600px", width: "100%" }}

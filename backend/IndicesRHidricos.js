@@ -31,7 +31,10 @@ const subirArchivoIndicerh = (req, res) => {
             const data = {
                 archivo: path.join(__dirname, nuevaRuta),
                 numero_time: tiempo,
-                session_id: sessionId
+                session_id: sessionId,
+                ih_variable: req.body.ih_variable,
+                lon_variable: req.body.lon_variable,
+                lat_variable: req.body.lat_variable,
             };
         
             
@@ -65,7 +68,10 @@ const enviarTiempoIndicerh = (req, res) => {
         const data = {
             archivo: path.join(__dirname, './uploads/',sessionId,'/indiceRhidrico_'+sessionId+'.nc'),
             numero_time: tiempoEntero,
-            session_id: sessionId
+            session_id: sessionId,
+            ih_variable: req.body.ih_variable,
+            lon_variable: req.body.lon_variable,
+            lat_variable: req.body.lat_variable,
         };
      
         Netcdf_indicesRHidricos.procesarDatos(data, res);
