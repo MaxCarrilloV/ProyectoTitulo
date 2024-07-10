@@ -275,6 +275,16 @@ const IndicesRH = () => {
     onSubmit(e.target.value);
     
   };
+  const handletext = (e) => {
+    const validKeys = /^[a-zA-Z\s\b_-]+$/;
+
+    if (
+      !validKeys.test(e.key) &&
+      !["ArrowRight", "ArrowLeft"].includes(e.key)
+    ) {
+      e.preventDefault();
+    }
+  };
 
   return (
     <div className="ms-5 mx-5">
@@ -298,7 +308,8 @@ const IndicesRH = () => {
               className="my-3"
               type="text"
               value={ihVariable}
-              placeholder="Nombre de la variable de precipitación"
+              placeholder="Nombre de la variable de indice de riesgo hídrico"
+              onKeyDown={handletext}
               onChange={(e) => setIhVariable(e.target.value)}
               disabled={buttonsDisabled}
             />
@@ -310,6 +321,7 @@ const IndicesRH = () => {
               type="text"
               value={lonVariable}
               placeholder="Nombre de la variable de longitud"
+              onKeyDown={handletext}
               onChange={(e) => setLonVariable(e.target.value)}
               disabled={buttonsDisabled}
             />
@@ -321,6 +333,7 @@ const IndicesRH = () => {
               type="text"
               value={latVariable}
               placeholder="Nombre de la variable de latitud"
+              onKeyDown={handletext}
               onChange={(e) => setLatVariable(e.target.value)}
               disabled={buttonsDisabled}
             />
@@ -424,6 +437,10 @@ const IndicesRH = () => {
               center={[-33.4489, -70.6693]}
               zoom={3}
               style={{ height: "600px", width: "100%" }}
+              maxBounds={[
+                [-90, -180],
+                [90, 180]
+              ]}
             >
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -444,6 +461,10 @@ const IndicesRH = () => {
               center={[-33.4489, -70.6693]}
               zoom={3}
               style={{ height: "600px", width: "100%" }}
+              maxBounds={[
+                [-90, -180],
+                [90, 180]
+              ]}
             >
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

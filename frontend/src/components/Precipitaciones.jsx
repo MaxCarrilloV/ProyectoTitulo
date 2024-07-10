@@ -258,7 +258,12 @@ const Precipitaciones = () => {
         return;
       }
       axios
-        .post("/api/enviar-tiempo", { tiempo: tiempo,pr_variable:prVariable,lon_variable:lonVariable,lat_variable:latVariable })
+        .post("/api/enviar-tiempo", {
+          tiempo: tiempo,
+          pr_variable: prVariable,
+          lon_variable: lonVariable,
+          lat_variable: latVariable,
+        })
         .then((response) => {
           console.log(response.data);
 
@@ -286,6 +291,16 @@ const Precipitaciones = () => {
     setSelectedDate(e.target.value);
     onSubmit(e.target.value);
   };
+  const handletext = (e) => {
+    const validKeys = /^[a-zA-Z\s\b_-]+$/;
+
+    if (
+      !validKeys.test(e.key) &&
+      !["ArrowRight", "ArrowLeft"].includes(e.key)
+    ) {
+      e.preventDefault();
+    }
+  };
 
   return (
     <div className="ms-5 mx-5">
@@ -311,6 +326,7 @@ const Precipitaciones = () => {
               value={prVariable}
               placeholder="Nombre de la variable de precipitación"
               onChange={(e) => setPrVariable(e.target.value)}
+              onKeyDown={handletext}
               disabled={buttonsDisabled}
             />
           </Form.Group>
@@ -322,6 +338,7 @@ const Precipitaciones = () => {
               value={lonVariable}
               placeholder="Nombre de la variable de longitud"
               onChange={(e) => setLonVariable(e.target.value)}
+              onKeyDown={handletext}
               disabled={buttonsDisabled}
             />
           </Form.Group>
@@ -333,6 +350,7 @@ const Precipitaciones = () => {
               value={latVariable}
               placeholder="Nombre de la variable de latitud"
               onChange={(e) => setLatVariable(e.target.value)}
+              onKeyDown={handletext}
               disabled={buttonsDisabled}
             />
           </Form.Group>
@@ -394,19 +412,20 @@ const Precipitaciones = () => {
               />
             </Form.Group>
           )}
-          {dates.length > 0 && ((units === "mm/day") || (units === "mm/h") || (units === "unknown")) && (
-            <Form.Group>
-              <Form.Control
-                className="my-3"
-                value={selectedDate}
-                min={dates[0]}
-                max={dates[dates.length - 1]}
-                type="date"
-                disabled={!Calendario}
-                onChange={handleDateChange}
-              />
-            </Form.Group>
-          )}
+          {dates.length > 0 &&
+            (units === "mm/day" || units === "mm/h" || units === "unknown") && (
+              <Form.Group>
+                <Form.Control
+                  className="my-3"
+                  value={selectedDate}
+                  min={dates[0]}
+                  max={dates[dates.length - 1]}
+                  type="date"
+                  disabled={!Calendario}
+                  onChange={handleDateChange}
+                />
+              </Form.Group>
+            )}
 
           {dates.length <= 0 && (
             <Form.Group>
@@ -431,6 +450,10 @@ const Precipitaciones = () => {
               center={[-33.4489, -70.6693]}
               zoom={3}
               style={{ height: "600px", width: "100%" }}
+              maxBounds={[
+                [-90, -180],
+                [90, 180],
+              ]}
             >
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -449,6 +472,10 @@ const Precipitaciones = () => {
             <MapContainer
               className="ms-5"
               center={[-33.4489, -70.6693]}
+              maxBounds={[
+                [-90, -180],
+                [90, 180],
+              ]}
               zoom={3}
               style={{ height: "600px", width: "100%" }}
             >
