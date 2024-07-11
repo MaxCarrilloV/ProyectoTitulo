@@ -77,17 +77,28 @@ const Precipitaciones = () => {
       });
   };
 
+  const getChunkSize = (fileSize) => {
+    if (fileSize > 5 * 1024 * 1024 * 1024) { // Archivos mayores a 5GB
+        return 2000 * 1024 * 1024; // 1GB
+    }  else if (fileSize > 1 * 1024 * 1024 * 1024) { // Archivos entre 1GB y 5GB
+        return 1000 * 1024 * 1024; // 200MB
+    } else if (fileSize > 100 * 1024 * 1024) { // Archivos entre 100MB y 1GB
+        return 100 * 1024 * 1024; // 50MB
+    } else { // Archivos menores a 100MB
+        return 10 * 1024 * 1024; // 10MB
+    }
+};
+
+
   const enviarArchivo = async () => {
     const Cookie = Cookies.get("sessionId");
-    //con esto en caso de sesion expirada enviamos al usuario al inicio
     if (!Cookie) {
-      // La sesión ha expirado, redirigir al usuario a pagina de inicio de sesion
       const error = "usuario_expirado";
       Cookies.set("sessionId", error);
-      console.log(Cookies.get("sessionId"));
       navigate("/");
+      return;
     }
-    // Verificar que las variables no estén vacías, no contengan espacios y no sean números
+
     const validateVariable = (variable) => {
       const hasSpaces = /\s/.test(variable);
       const isNumber = /^\d+$/.test(variable);
@@ -114,91 +125,85 @@ const Precipitaciones = () => {
       setTipoMensaje("danger");
       return;
     }
+
     if (selectedFile) {
+      const chunkSize = getChunkSize(selectedFile.size);; // 10MB por fragmento
+      const totalChunks = Math.ceil(selectedFile.size / chunkSize);
       const formData = new FormData();
-      formData.append("archivo", selectedFile);
+
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * chunkSize;
+        const end = Math.min(start + chunkSize, selectedFile.size);
+        const chunk = selectedFile.slice(start, end);
+        formData.append("chunks", chunk, `${selectedFile.name}.part${i + 1}`);
+      }
+
+      formData.append("totalChunks", totalChunks);
       formData.append("pr_variable", prVariable);
       formData.append("lon_variable", lonVariable);
       formData.append("lat_variable", latVariable);
-      console.log(Cookies.get());
-      setLoading(true); // Mostrar el mensaje de "Cargando archivo"
+
+      setLoading(true);
       setButtonsDisabled(true);
-      axios
-        .post("/api/subir-archivo", formData, {
-          headers: {
-            Authorization: `Bearer ${Cookies.get("sessionId")}`,
-          },
-        })
-        .then((response) => {
-          const IsExito = response.data.mapa.mensaje;
-          if (
-            IsExito ===
-            "variable incorrecta, por favor cargue un archivo netcdf de Precipitaciones"
-          ) {
-            setMensaje(
-              "Servidor: Variable incorrecta, por favor cargue un archivo netcdf de Precipitaciones"
-            );
-            setMostrarAlertaArchivo(true);
-            setTipoMensaje("danger");
-            setLoading(false);
-            setButtonsDisabled(false);
+      axios.post("/api/subir-archivo", formData, {
+        headers: {
+          Authorization: `Bearer ${Cookies.get("sessionId")}`,
+        },
+      })
+      .then((response) => {
+        const IsExito = response.data.mapa.mensaje;
+        if (IsExito === "variable incorrecta, por favor cargue un archivo netcdf de Precipitaciones") {
+          setMensaje("Servidor: Variable incorrecta, por favor cargue un archivo netcdf de Precipitaciones");
+          setMostrarAlertaArchivo(true);
+          setTipoMensaje("danger");
+          setLoading(false);
+          setButtonsDisabled(false);
+        } else {
+          setMensaje("Archivo recibido con éxito");
+          setFileConfirmed(true);
+          setMapaActualizado(true);
+          setEnableButton(true);
+          setValue("archivo", selectedFileName);
+          setMostrarAlertaArchivo(true);
+          setTipoMensaje("info");
+          setLoading(false);
+          setPr_max(response.data.mapa.pr_max);
+          setCoordenadas(response.data.mapa.file);
+          setCalendario(true);
+          setUnits(response.data.mapa.units);
+          if (response.data.mapa.units === "mm") {
+            setNombre("mensual");
           } else {
-            setMensaje("Archivo recibido con éxito");
-            console.log(response.data);
-            setMostrarAlertaArchivo(true);
-            setTipoMensaje("info");
-            setLoading(false);
-            setFileConfirmed(true);
-            setMapaActualizado(true);
-            setEnableButton(true);
-            setValue("archivo", selectedFileName);
-            setPr_max(response.data.mapa.pr_max);
-            setCoordenadas(response.data.mapa.file);
-            setCalendario(true);
-            setUnits(response.data.mapa.units);
-            if (response.data.mapa.units === "mm") {
-              setNombre("mensual");
-            } else {
-              setNombre("diaria");
-            }
+            setNombre("diaria");
+          }
 
-            if (
-              response.data.mapa.available_dates.length > 0 &&
-              response.data.mapa.units === "mm"
-            ) {
-              for (
-                let i = 0;
-                i < response.data.mapa.available_dates.length;
-                i++
-              ) {
-                const date = new Date(response.data.mapa.available_dates[i]);
-                const month = (date.getMonth() + 1).toString().padStart(2, "0");
-                const year = date.getFullYear();
-                response.data.mapa.available_dates[i] = `${year}-${month}`;
-              }
-              setDates(response.data.mapa.available_dates);
-
-              const date = new Date(response.data.mapa.available_dates[1]);
+          if (response.data.mapa.available_dates.length > 0 && response.data.mapa.units === "mm") {
+            for (let i = 0; i < response.data.mapa.available_dates.length; i++) {
+              const date = new Date(response.data.mapa.available_dates[i]);
               const month = (date.getMonth() + 1).toString().padStart(2, "0");
               const year = date.getFullYear();
-              setSelectedDate(`${year}-${month}`);
-            } else {
-              setDates(response.data.mapa.available_dates);
-              setSelectedDate(response.data.mapa.available_dates[0]);
+              response.data.mapa.available_dates[i] = `${year}-${month}`;
             }
-            if (
-              response.data.mapa.available_dates ===
-              "No time variable available"
-            ) {
-              setDates([]);
-            }
+            setDates(response.data.mapa.available_dates);
+
+            const date = new Date(response.data.mapa.available_dates[1]);
+            const month = (date.getMonth() + 1).toString().padStart(2, "0");
+            const year = date.getFullYear();
+            setSelectedDate(`${year}-${month}`);
+          } else {
+            setDates(response.data.mapa.available_dates);
+            setSelectedDate(response.data.mapa.available_dates[0]);
           }
-        })
-        .catch((error) => {
-          console.log("Error al enviar el archivo al backend:", error);
-          setLoading(false); // Cambiar el mensaje a "Archivo cargado" incluso en caso de error
-          setButtonsDisabled(false); // Habilitar el botón para habilitar los botones de archivo
-        });
+          if (response.data.mapa.available_dates === "No time variable available") {
+            setDates([]);
+          }
+        }
+      })
+      .catch((error) => {
+        console.log("Error al enviar el archivo al backend:", error);
+        setLoading(false);
+        setButtonsDisabled(false);
+      });
     }
   };
   useEffect(() => {

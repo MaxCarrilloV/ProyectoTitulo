@@ -4,50 +4,67 @@ const fs = require('fs');
 
 const subirArchivoPrecipitaciones = (req, res) => {
     const authorizationHeader = req.headers['authorization'];
+    const { pr_variable, lon_variable, lat_variable, totalChunks } = req.body;
+    const files = req.files;
 
-    if (req.file && authorizationHeader && authorizationHeader.startsWith('Bearer ')) {
+    if (files && authorizationHeader && authorizationHeader.startsWith('Bearer ')) {
         const sessionId = authorizationHeader.split(' ')[1];
-        //para utilizar el sessionId
         console.log('ID de sesión:', sessionId);
 
-        console.log('Archivo recibido:', req.file.originalname);
-        
-        // Ruta y nombre del archivo de destino
-        const rutaActual = req.file.path;
-        console.log('id pa nombre: ', sessionId)
-        const nuevoNombre = 'precipitaciones_'+sessionId+'.nc';
-        const nuevaRuta = 'uploads/'+sessionId+'/'+ nuevoNombre;
-        console.log(nuevaRuta)
-        try {
-            if (fs.existsSync(nuevaRuta)) {
-                fs.unlinkSync(nuevaRuta); // Eliminar archivo existente si existe
-            }
-            
-            fs.renameSync(rutaActual, nuevaRuta);
-            console.log('Archivo reemplazado exitosamente.',nuevoNombre);
-            let tiempo = 1;
-            if (tiempo) {
-        
-            const data = {
-                archivo: path.join(__dirname, nuevaRuta),
-                numero_time: tiempo,
-                session_id: sessionId,
-                pr_variable: req.body.pr_variable,
-                lon_variable: req.body.lon_variable,
-                lat_variable: req.body.lat_variable,
-            };
-            Netcdf_precipitaciones.procesarDatos(data, res);
-            console.log('Tiempo recibido:', tiempo);
-            } else {
-            res.status(400).send('Error: No se ha recibido el tiempo');
-            }
+        const nuevoNombre = `precipitaciones_${sessionId}.nc`;
+        const targetDir = path.join(__dirname, 'uploads', sessionId);
 
-        } catch (error) {
-            console.error('Error al reemplazar el archivo:', error);
-            res.status(500).send('Error al reemplazar el archivo');
+        if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true });
+        }
+
+        files.forEach((file, index) => {
+            const targetPath = path.join(targetDir, `${nuevoNombre}.part${index + 1}`);
+            fs.renameSync(file.path, targetPath);
+        });
+
+        if (files.length === parseInt(totalChunks, 10)) {
+            const finalPath = path.join(targetDir, nuevoNombre);
+            const writeStream = fs.createWriteStream(finalPath);
+
+            const combineFiles = (i) => {
+                if (i > totalChunks) {
+                    writeStream.end();
+                    writeStream.on('finish', () => {
+                        const data = {
+                            archivo: finalPath,
+                            numero_time: 1,
+                            session_id: sessionId,
+                            pr_variable,
+                            lon_variable,
+                            lat_variable,
+                        };
+                        Netcdf_precipitaciones.procesarDatos(data, res);
+                    });
+                    return;
+                }
+
+                const chunkPath = path.join(targetDir, `${nuevoNombre}.part${i}`);
+                const readStream = fs.createReadStream(chunkPath);
+
+                readStream.pipe(writeStream, { end: false });
+                readStream.on('end', () => {
+                    fs.unlinkSync(chunkPath);
+                    combineFiles(i + 1);
+                });
+
+                readStream.on('error', (err) => {
+                    console.error('Error al leer el fragmento:', err);
+                    res.status(500).send('Error al combinar los fragmentos');
+                });
+            };
+
+            combineFiles(1);
+        } else {
+            res.json({ message: 'Chunks uploaded successfully' });
         }
     } else {
-        res.status(400).send('Error: No se ha recibido ningún archivo');
+        res.status(400).send('Error: No se ha recibido ningún archivo o la autorización es inválida');
     }
 };
 

@@ -73,7 +73,7 @@ app.post('/api/login', (req, res) => {
 });
 
 // Para subir el archivo
-app.post('/api/subir-archivo',  upload.single('archivo'), (req, res) => { 
+app.post('/api/subir-archivo',  upload.array('chunks', 100), (req, res) => { 
   Precipitaciones.subirArchivoPrecipitaciones( req, res);
 });
   
@@ -118,22 +118,6 @@ app.post('/api/enviar-tiempo-temperatura', cors(), (req, res) => {
 app.delete('/api/borrar-archivos-temperatura', (req, res) => {
   TemperaturasTmaxTmin.borrarArchivosTemperatura( req, res);
 });
-
-/*    
-//envia archivo json al navegador(test)
-app.get('/json', (req, res) => {
-    // Define la ruta del archivo JSON que deseas enviar
-    const archivoJSON = path.join(__dirname, './Lectura_netcdf.json');
-
-    
-    // Enviar el archivo JSON al navegador
-    res.sendFile(archivoJSON, (error) => {
-        if (error) {
-            res.status(500).send('Error al enviar el archivo JSON');
-        }
-    });
-});*/
-
 
 // Iniciar el servidor
 app.listen(PORT, () => {
