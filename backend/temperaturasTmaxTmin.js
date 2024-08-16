@@ -81,6 +81,12 @@ const enviarTiempoTemperatura = (req, res) => {
       }
     }
 };
+
+const crearCarpetaSiNoExiste = (ruta) => {
+  if (!fs.existsSync(ruta)) {
+      fs.mkdirSync(ruta, { recursive: true });
+  }
+};
     
 const borrarArchivosTemperatura = (req, res) => {
     const authorizationHeader = req.headers['authorization'];
@@ -118,10 +124,55 @@ const borrarArchivosTemperatura = (req, res) => {
       }
     }
 };
+
+const presetearArchivoTemperatura = (archivo,req,res) => {
+  const authorizationHeader = req.headers['authorization'];
+  const sessionId = authorizationHeader.split(' ')[1];
+  const rutaActual = archivo;
+  if (!rutaActual) {
+    console.error('La ruta del archivo no está definida.');
+    return;
+  }   
+  const nuevoNombre = 'temperatura_' + sessionId + '.nc';
+  const nuevaRuta = path.join(__dirname, 'uploads', sessionId, nuevoNombre);
+  try {
+    // Verificar y crear la carpeta de destino si no existe
+    const rutaDestino = path.dirname(nuevaRuta);
+    crearCarpetaSiNoExiste(rutaDestino);
+
+    // Copiar el archivo en lugar de moverlo
+    fs.copyFileSync(rutaActual, nuevaRuta);
+    console.log('Archivo copiado exitosamente.', nuevoNombre);
+    let tiempo = 1;
+    if (tiempo) {
+  
+      const data = {
+          archivo: rutaActual,
+          numero_time: tiempo,
+          session_id: sessionId,
+          t_variable: 'tmax',
+          lon_variable: 'lon',
+          lat_variable: 'lat',
+      };
+  
+      
+      Netcdf_temperatura.procesarDatos(data, res);
+      console.log('Tiempo recibido:', tiempo);
+    } else {
+      res.status(400).send('Error: No se ha recibido el tiempo');
+    }
+    
+  } catch (error) {
+    console.error('Error al copiar el archivo:', error);
+    res.status(500).send('Error al copiar el archivo');
+  }
+    
+};
     
 
 module.exports = {
     subirArchivoTemperatura,
     enviarTiempoTemperatura,
-    borrarArchivosTemperatura
+    borrarArchivosTemperatura,
+    presetearArchivoTemperatura 
 };

@@ -1,13 +1,12 @@
 import React from "react";
 import { useNavigate,useLocation } from "react-router-dom";
 import { Nav } from "react-bootstrap";
-
+import "./Formulario.css";
 const SidebarMenu = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const handleSelect = (selectedKey) => {
     navigate(selectedKey);
-    
   };
 
   return (

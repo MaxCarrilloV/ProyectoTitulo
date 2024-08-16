@@ -15,6 +15,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 const { v4: uuidv4 } = require('uuid');
 
+
 // Almacén para guardar los SessionIDs válidos
 const activeSessions = new Map();
 
@@ -76,7 +77,18 @@ app.post('/api/login', (req, res) => {
 app.post('/api/subir-archivo',  upload.single('archivo'), (req, res) => { 
   Precipitaciones.subirArchivoPrecipitaciones( req, res);
 });
-  
+
+app.get('/api/preset', (req, res) => {
+  const rutaArchivo = "/Archivos/CR2MET_pr_v2.0_mon_1979_2018_005deg.nc";
+  const rutaActual = path.join(__dirname, rutaArchivo);
+  Precipitaciones.presetearArchivoPrecipitaciones(rutaActual,req,res);
+});
+
+app.get('/api/preset-temperatura', (req, res) => {
+  const rutaArchivo = "/Archivos/CR2MET_tmax_v2.0_mon_1979_2019_005deg.nc";
+  const rutaActual = path.join(__dirname, rutaArchivo);
+  TemperaturasTmaxTmin.presetearArchivoTemperatura(rutaActual,req,res);
+});
   
 // Para recibir el tiempo
 app.post('/api/enviar-tiempo', cors(), (req, res) => {

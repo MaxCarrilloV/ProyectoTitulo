@@ -10,10 +10,36 @@
     justify-content: center;
     align-items: center;
     flex-direction: column;
-    
-    
+}  
+
+.nav-pills .nav-link.active,
+.show> .nav-pills .nav-link{
+    background: #404040C7 !important;
+    border-radius: 15px ;
 }
-    
+.map-container .nav-pills .nav-link{
+    margin:5px;
+    border-radius: 15px !important;
+    background-color: #0000002E;
+    color: #fff3e1;
+    font-size: 14px;
+    white-space: nowrap;
+}
+.map-container .nav-link:focus,.map-container .nav-link:hover {
+    background-color: #404040C7 !important;
+    color: #fff3e1 !important;
+}
+.map-container .btn-primary{
+    background-color: #404040C7 !important;
+    color: #fff3e1 !important;
+    border-color: #404040C7 !important;
+    font-size: 14px !important;
+}
+.map-container .btn-primary:hover{
+    background-color: #404040 !important;
+    color: #fff3e1 !important;
+    border-color: #404040 !important;
+}
      
 .formulario-input {
     margin-bottom: 10px;

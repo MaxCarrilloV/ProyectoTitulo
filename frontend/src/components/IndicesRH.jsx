@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import {useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { useNavigate } from "react-router-dom";
-import { Form, Button, Alert } from "react-bootstrap";
+import { Form, Button, Alert, Modal } from "react-bootstrap";
 import { MapContainer, TileLayer } from "react-leaflet";
 import IhControl from "./IhControl";
 import GeoTiffMap from "./GeoTiffMap";
@@ -32,6 +32,7 @@ const IndicesRH = () => {
   const [ihVariable, setIhVariable] = useState("");
   const [lonVariable, setLonVariable] = useState("");
   const [latVariable, setLatVariable] = useState("");
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     // Obtener el sessionId de las cookies y configurarlo en el encabezado de la solicitud
@@ -40,10 +41,10 @@ const IndicesRH = () => {
     )}`;
   }, []);
 
-  const {
-    handleSubmit,
-    setValue,
-  } = useForm();
+  const handleOpenModal = () => setShowModal(true);
+  const handleCloseModal = () => setShowModal(false);
+
+  const { handleSubmit, setValue } = useForm();
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -153,8 +154,12 @@ const IndicesRH = () => {
             setCoordenadas(response.data.mapa.file);
             setCalendario(true);
             setUnits(response.data.mapa.units);
-
-            if (response.data.mapa.available_dates.length > 0  && response.data.mapa.units === "mm") { //cambiar a units correspondiente
+            handleCloseModal();
+            if (
+              response.data.mapa.available_dates.length > 0 &&
+              response.data.mapa.units === "mm"
+            ) {
+              //cambiar a units correspondiente
               for (
                 let i = 0;
                 i < response.data.mapa.available_dates.length;
@@ -171,11 +176,14 @@ const IndicesRH = () => {
               const month = (date.getMonth() + 1).toString().padStart(2, "0");
               const year = date.getFullYear();
               setSelectedDate(`${year}-${month}`);
-            }else{
+            } else {
               setDates(response.data.mapa.available_dates);
               setSelectedDate(response.data.mapa.available_dates[0]);
             }
-            if (response.data.mapa.available_dates === "No time variable available") {
+            if (
+              response.data.mapa.available_dates ===
+              "No time variable available"
+            ) {
               setDates([]);
             }
           }
@@ -196,17 +204,17 @@ const IndicesRH = () => {
   useEffect(() => {
     // Establecer un tiempo de vida para la alerta de archivo (ejemplo: 5 segundos)
     const timeoutArchivo = setTimeout(() => {
-      setMostrarAlertaArchivo(false); 
+      setMostrarAlertaArchivo(false);
     }, 5000);
 
     // Establecer un tiempo de vida para la alerta de tiempo (ejemplo: 5 segundos)
     const timeoutTiempo = setTimeout(() => {
-      setMostrarAlertaTiempo(false); 
+      setMostrarAlertaTiempo(false);
     }, 5000);
 
     return () => {
-      clearTimeout(timeoutArchivo); 
-      clearTimeout(timeoutTiempo); 
+      clearTimeout(timeoutArchivo);
+      clearTimeout(timeoutTiempo);
     };
   }, [mostrarAlertaArchivo, mostrarAlertaTiempo]);
 
@@ -223,7 +231,7 @@ const IndicesRH = () => {
     if (fileConfirmed) {
       let tiempo;
       //corroborar que la fecha este dentro de los valores permitidos
-      if (data < dates[0] || data> dates[dates.length - 1]) {
+      if (data < dates[0] || data > dates[dates.length - 1]) {
         setMensaje("Servidor: Fecha no disponible, seleccione otra fecha.");
         setMostrarAlertaTiempo(true);
         setTipoMensaje("danger");
@@ -242,23 +250,27 @@ const IndicesRH = () => {
         setMostrarAlertaTiempo(true);
         setTipoMensaje("danger");
         return;
-      } 
+      }
       axios
-        .post("/api/enviar-tiempo-indicerh", {  tiempo: tiempo,ih_variable:ihVariable,lon_variable:lonVariable,lat_variable:latVariable })
+        .post("/api/enviar-tiempo-indicerh", {
+          tiempo: tiempo,
+          ih_variable: ihVariable,
+          lon_variable: lonVariable,
+          lat_variable: latVariable,
+        })
         .then((response) => {
-            console.log(response.data);
-            
-            setTipoMensaje("info");
-            setLoading(false);
-            setFileConfirmed(true);
-            setMapaActualizado(true);
-            setEnableButton(true);
-            setih_max(response.data.mapa.pr_max);
-            setCoordenadas(response.data.mapa.file);
-            setCalendario(true);
-            setUnits(response.data.mapa.units);
+          console.log(response.data);
 
-            
+          setTipoMensaje("info");
+          setLoading(false);
+          setFileConfirmed(true);
+          setMapaActualizado(true);
+          setEnableButton(true);
+          setih_max(response.data.mapa.pr_max);
+          setCoordenadas(response.data.mapa.file);
+          setCalendario(true);
+          setUnits(response.data.mapa.units);
+          handleCloseModal();
         })
         .catch((error) => {
           console.log("Error al enviar el tiempo al backend:", error);
@@ -273,7 +285,6 @@ const IndicesRH = () => {
     setMostrarAlertaTiempo(true);
     setSelectedDate(e.target.value);
     onSubmit(e.target.value);
-    
   };
   const handletext = (e) => {
     const validKeys = /^[a-zA-Z\s\b_-]+$/;
@@ -287,10 +298,14 @@ const IndicesRH = () => {
   };
 
   return (
-    <div className="ms-5 mx-5">
-      <div className="d-flex my-5">
-        <Form onSubmit={handleSubmit(onSubmit)} encType="multipart/form-data">
-          <Menu />
+    <div>
+      <div className="d-flex">
+        <Modal  show={showModal} onHide={handleCloseModal}>
+          <Modal.Header closeButton>
+            <Modal.Title >Subir Archivo NETCDF de Ìndice de riesgo hìdrico</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+          <Form onSubmit={handleSubmit(onSubmit)} encType="multipart/form-data">
           <Form.Group>
             <Form.Control
               id="archivoInput"
@@ -383,40 +398,38 @@ const IndicesRH = () => {
               </span>
             )}
           </label>
-          {dates.length > 0 && units === "mm" && ( //cambiar a units correspondiente
-            <Form.Group>
-              <Form.Control
-                className="my-3"
-                value={selectedDate}
-                min={dates[0]}
-                max={dates[dates.length - 1]}
-                type="month"
-                disabled={!Calendario}
-                onChange={handleDateChange}
-              />
-            </Form.Group>
-          )}
-          {dates.length > 0 && units === "mm/day" && ( //cambiar a units correspondiente
-            <Form.Group>
-              <Form.Control
-                className="my-3"
-                value={selectedDate}
-                min={dates[0]}
-                max={dates[dates.length - 1]}
-                type="date"
-                disabled={!Calendario}
-                onChange={handleDateChange}
-              />
-            </Form.Group>
-          )}
+          {dates.length > 0 &&
+            units === "mm" && ( //cambiar a units correspondiente
+              <Form.Group>
+                <Form.Control
+                  className="my-3"
+                  value={selectedDate}
+                  min={dates[0]}
+                  max={dates[dates.length - 1]}
+                  type="month"
+                  disabled={!Calendario}
+                  onChange={handleDateChange}
+                />
+              </Form.Group>
+            )}
+          {dates.length > 0 &&
+            units === "mm/day" && ( //cambiar a units correspondiente
+              <Form.Group>
+                <Form.Control
+                  className="my-3"
+                  value={selectedDate}
+                  min={dates[0]}
+                  max={dates[dates.length - 1]}
+                  type="date"
+                  disabled={!Calendario}
+                  onChange={handleDateChange}
+                />
+              </Form.Group>
+            )}
 
           {dates.length <= 0 && (
             <Form.Group>
-              <Form.Control
-                className="my-3"
-                type="date"
-                disabled={true}
-              />
+              <Form.Control className="my-3" type="date" disabled={true} />
             </Form.Group>
           )}
           <div className="error-message">
@@ -430,21 +443,49 @@ const IndicesRH = () => {
             )}
           </div>
         </Form>
+          </Modal.Body>
+        </Modal>
+        
         {coordenadas?.length > 0 && (
-          <div className="map-container mx-4">
-            <h2 >Índice de Riesgo Hídrico</h2>
+          <div
+            className="map-container"
+            style={{ height: "100vh", width: "100vw", position: "relative" }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: 50,
+                left: 0,
+                height: "100%",
+                zIndex: 1000,
+              }}
+            >
+              <Menu />
+            </div>
+            <div
+              style={{
+                position: "absolute",
+                top: 10,
+                right: "10px",
+                zIndex: 1000,
+              }}
+            >
+              <Button onClick={handleOpenModal}>
+                Cambir datos de visualización
+              </Button>
+            </div>
             <MapContainer
               center={[-33.4489, -70.6693]}
               zoom={3}
-              style={{ height: "600px", width: "100%" }}
+              style={{ height: "100vh", width: "100%" }}
               maxBounds={[
                 [-90, -180],
-                [90, 180]
+                [90, 180],
               ]}
             >
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                attribution={`Visualizando ${selectedDate} en el archivo que abarca desde ${dates[0]} hasta ${dates[dates.length - 1]}.`}
               />
               <GeoTiffMap tiffUrl={coordenadas} />
 
@@ -454,16 +495,41 @@ const IndicesRH = () => {
         )}
 
         {coordenadas.length <= 0 && (
-          <div className="map-container mx-4">
-            <h2 className="ms-5">Índice de Riesgo Hídrico</h2>
+          <div
+            className="map-container"
+            style={{ height: "100vh", width: "100vw", position: "relative" }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: 50,
+                left: 0,
+                height: "100%",
+                zIndex: 1000,
+              }}
+            >
+              <Menu />
+            </div>
+            <div
+              style={{
+                position: "absolute",
+                top: 10,
+                right: "10px",
+                zIndex: 1000,
+              }}
+            >
+              <Button onClick={handleOpenModal}>
+                Desea visualizar su propio archivo NETCDF
+              </Button>
+            </div>
             <MapContainer
-            className="ms-5"
               center={[-33.4489, -70.6693]}
               zoom={3}
-              style={{ height: "600px", width: "100%" }}
+              minZoom={3}
+              style={{ height: "100vh", width: "100%" }}
               maxBounds={[
                 [-90, -180],
-                [90, 180]
+                [90, 180],
               ]}
             >
               <TileLayer
