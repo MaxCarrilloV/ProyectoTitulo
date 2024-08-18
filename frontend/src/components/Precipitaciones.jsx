@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { set, useForm } from "react-hook-form";
+import {  useForm } from "react-hook-form";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { useNavigate } from "react-router-dom";
@@ -9,6 +9,7 @@ import PrControl from "./PrControl";
 import GeoTiffMap from "./GeoTiffMap";
 import "./Formulario.css";
 import Menu from "./Menu";
+import { usePrecipitationData } from './DataContext';
 
 const Precipitaciones = () => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -35,85 +36,80 @@ const Precipitaciones = () => {
   const [latVariable, setLatVariable] = useState("");
   const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => { 
-    // Obtener el sessionId de las cookies y configurarlo en el encabezado de la solicitud
-    axios.defaults.headers.common["Authorization"] = `Bearer ${Cookies.get(
-      "sessionId"
-    )}`;
-    //alerta de cargando datos preseteados cambiar el estilo del mensaje
+  const { precipitationData, setPrecipitationData } = usePrecipitationData();
+  useEffect(() => {
+    if (precipitationData) {
+      // Si los datos ya están cargados, los usa
+      console.log("Usando datos previamente cargados");
+      processResponseData(precipitationData);
+    } else {
+      // Si los datos no están cargados, los carga desde el servidor
+      console.log("Cargando datos desde el servidor");
+      axios.defaults.headers.common["Authorization"] = `Bearer ${Cookies.get("sessionId")}`;
+
+      setTipoMensaje("info");
+      setMensaje("Cargando datos preseteados");
+      setMostrarAlertaArchivo(true);
+
+      const presetearArchivo = async () => {
+        try {
+          const response = await axios.get("/api/preset", {
+            headers: {
+              Authorization: `Bearer ${Cookies.get("sessionId")}`,
+            },
+          });
+
+          setPrecipitationData(response.data); // Guardar los datos en el contexto
+          processResponseData(response.data);
+        } catch (error) {
+          console.error("Error al cargar el archivo:", error);
+          setLoading(false);
+          setMostrarAlertaArchivo(false);
+        }
+      };
+
+      presetearArchivo();
+    }
+  }, [precipitationData, setPrecipitationData]);
+
+  const processResponseData = (response) => {
+    setButtonsDisabled(true);
+    setMensaje("Archivo recibido con éxito");
+    setMostrarAlertaArchivo(false);
     setTipoMensaje("info");
-    setMensaje("Cargando datos preseteados");
+    setLoading(false);
+    setFileConfirmed(true);
+    setMapaActualizado(true);
+    setEnableButton(true);
+    setValue("archivo", selectedFileName);
+    setPr_max(response.mapa.pr_max);
+    setCoordenadas(response.mapa.file);
+    setCalendario(true);
+    setUnits(response.mapa.units);
+    setPrVariable('pr');
+    setLonVariable('lon');
+    setLatVariable('lat');
+    setNombre(response.mapa.units === "mm" ? "mensual" : "diaria");
 
-    setMostrarAlertaArchivo(true);
-    const presetearArchivo = async () => {
-      axios
-        .get("/api/preset",{
-          headers: {
-            Authorization: `Bearer ${Cookies.get("sessionId")}`,
-          },
-        })
-        .then((response) => {
-            setButtonsDisabled(true);
-            setMensaje("Archivo recibido con éxito");
-            console.log(response.data);
-            setMostrarAlertaArchivo(true);
-            setTipoMensaje("info");
-            setLoading(false);
-            setFileConfirmed(true);
-            setMapaActualizado(true);
-            setEnableButton(true);
-            setValue("archivo", selectedFileName);
-            setPr_max(response.data.mapa.pr_max);
-            setCoordenadas(response.data.mapa.file);
-            setCalendario(true);
-            setUnits(response.data.mapa.units);
-            setPrVariable('pr');
-            setLonVariable('lon');
-            setLatVariable('lat');
-            setMostrarAlertaArchivo(false);
-            if (response.data.mapa.units === "mm") {
-              setNombre("mensual");
-            } else {
-              setNombre("diaria");
-            }
+    if (response.mapa.available_dates.length > 0 && response.mapa.units === "mm") {
+      const availableDates = response.mapa.available_dates.map(dateStr => {
+        const date = new Date(dateStr);
+        const month = (date.getMonth() + 1).toString().padStart(2, "0");
+        const year = date.getFullYear();
+        return `${year}-${month}`;
+      });
 
-            if (
-              response.data.mapa.available_dates.length > 0 &&
-              response.data.mapa.units === "mm"
-            ) {
-              for (
-                let i = 0;
-                i < response.data.mapa.available_dates.length;
-                i++
-              ) {
-                const date = new Date(response.data.mapa.available_dates[i]);
-                const month = (date.getMonth() + 1).toString().padStart(2, "0");
-                const year = date.getFullYear();
-                response.data.mapa.available_dates[i] = `${year}-${month}`;
-              }
-              setDates(response.data.mapa.available_dates);
+      setDates(availableDates);
+      setSelectedDate(availableDates[0]);
+    } else {
+      setDates(response.mapa.available_dates);
+      setSelectedDate(response.mapa.available_dates[0]);
+    }
 
-              const date = new Date(response.data.mapa.available_dates[1]);
-              const month = (date.getMonth() + 1).toString().padStart(2, "0");
-              const year = date.getFullYear();
-              setSelectedDate(`${year}-${month}`);
-            } else {
-              setDates(response.data.mapa.available_dates);
-              setSelectedDate(response.data.mapa.available_dates[0]);
-            }
-            if (
-              response.data.mapa.available_dates ===
-              "No time variable available"
-            ) {
-              setDates([]);
-            }
-          
-        })
-    };
-
-    presetearArchivo();
-
-  }, []);
+    if (response.mapa.available_dates === "No time variable available") {
+      setDates([]);
+    }
+  };
 
   const handleOpenModal = () => setShowModal(true); // Función para abrir el modal
   const handleCloseModal = () => setShowModal(false);

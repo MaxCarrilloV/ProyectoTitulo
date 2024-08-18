@@ -3,12 +3,13 @@ import { useForm } from "react-hook-form";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { useNavigate } from "react-router-dom";
-import { Form, Button, Alert, Modal, ModalBody } from "react-bootstrap";
+import { Form, Button, Alert, Modal } from "react-bootstrap";
 import { MapContainer, TileLayer } from "react-leaflet";
 import TControl from "./TControl";
 import GeoTiffMap from "./GeoTiffMap";
 import "./Formulario.css";
 import Menu from "./Menu";
+import { useTemperatureData } from './DataContext';
 
 const Temperaturas = () => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -35,107 +36,157 @@ const Temperaturas = () => {
   const [lonVariable, setLonVariable] = useState("");
   const [latVariable, setLatVariable] = useState("");
   const [showModal, setShowModal] = useState(false);
-
+  const { temperatureData, setTemperatureData } = useTemperatureData();
+  
   useEffect(() => {
-    // Obtener el sessionId de las cookies y configurarlo en el encabezado de la solicitud
-    axios.defaults.headers.common["Authorization"] = `Bearer ${Cookies.get(
-      "sessionId"
-    )}`;
-    setTipoMensaje("info");
-    setMensaje("Cargando datos preseteados");
-    setMostrarAlertaArchivo(true);
+    if (temperatureData) {
+      // Usar los datos del contexto si ya están disponibles
+      console.log("Usando datos previamente cargados del contexto");
+      const response = temperatureData;
 
-    const presetearArchivo = async () => {
-      axios
-        .get("/api/preset-temperatura",{
-          headers: {
-            Authorization: `Bearer ${Cookies.get("sessionId")}`,
-          },
-        })
-        .then(response => {
+      setButtonsDisabled(true);
+      setMostrarAlertaArchivo(false);
+      setTipoMensaje("info");
+      setLoading(false);
+      setFileConfirmed(true);
+      setMapaActualizado(true);
+      setEnableButton(true);
+      setValue("archivo", selectedFileName);
+      setT_max(response.mapa.t_max);
+      setCoordenadas(response.mapa.file);
+      setCalendario(true);
+      setUnits(response.mapa.units);
+      setT_min(response.mapa.t_min);
+      setTVariable('tmax');
+      setLonVariable('lon');
+      setLatVariable('lat');
+      setnombreLargo(response.mapa.nombre_largo);
+
+      if (response.mapa.nombre_largo === "Daily maximum temperature") {
+        setnombreLargo("diaria máxima");
+        setUnits("Celsius/day");
+      } else if (response.mapa.nombre_largo === "Daily minimum temperature") {
+        setnombreLargo("diaria mínima");
+        setUnits("Celsius/day");
+      } else if (response.mapa.nombre_largo === "2 meter temperature") {
+        setnombreLargo("2 metros");
+        setUnits("Celsius");
+      }
+
+      if (response.mapa.time.includes("seconds") || response.mapa.time.includes("day")) {
+        setUnits("Celsius/day");
+      }
+
+      if (response.mapa.available_dates.length > 0 && (
+        response.mapa.nombre_largo === "mean daily maximum temperature" ||
+        response.mapa.nombre_largo === "mean daily minimum temperature" ||
+        response.mapa.nombre_largo === "daily mean 2-meter temperature"
+      )) {
+        const availableDates = response.mapa.available_dates.map(dateStr => {
+          const date = new Date(dateStr);
+          const month = (date.getMonth() + 1).toString().padStart(2, "0");
+          const year = date.getFullYear();
+          return `${year}-${month}`;
+        });
+
+        setDates(availableDates);
+        setSelectedDate(availableDates[0]);
+      } else {
+        setDates(response.mapa.available_dates);
+        setSelectedDate(response.mapa.available_dates[0]);
+      }
+
+      if (response.mapa.available_dates === "No time variable available") {
+        setDates([]);
+      }
+    } else {
+      // Cargar los datos desde el servidor si no están en el contexto
+      console.log("Cargando datos desde el servidor");
+      axios.defaults.headers.common["Authorization"] = `Bearer ${Cookies.get("sessionId")}`;
+
+      setTipoMensaje("info");
+      setMensaje("Cargando datos preseteados");
+      setMostrarAlertaArchivo(true);
+
+      const presetearArchivo = async () => {
+        try {
+          const response = await axios.get("/api/preset-temperatura", {
+            headers: {
+              Authorization: `Bearer ${Cookies.get("sessionId")}`,
+            },
+          });
+
           setButtonsDisabled(true);
-          setMensaje("Archivo recibido con éxito");
-            console.log(response.data);
-            setMostrarAlertaArchivo(true);
-            setTipoMensaje("info");
-            setLoading(false);
-            setFileConfirmed(true);
-            setMapaActualizado(true);
-            setEnableButton(true);
-            setValue("archivo", selectedFileName);
-            setT_max(response.data.mapa.t_max);
-            setCoordenadas(response.data.mapa.file);
-            setCalendario(true);
-            setUnits(response.data.mapa.units);
-            setT_min(response.data.mapa.t_min);
-            setTVariable('tmax');
-            setLonVariable('lon');
-            setLatVariable('lat');
-            setnombreLargo(response.data.mapa.nombre_largo);
-            if (
-              response.data.mapa.nombre_largo === "Daily maximum temperature"
-            ) {
-              setnombreLargo("diaria máxima");
-              setUnits("Celsius/day");
-            } else {
-              if (
-                response.data.mapa.nombre_largo === "Daily minimum temperature"
-              ) {
-                setnombreLargo("diaria mínima");
-                setUnits("Celsius/day");
-              }
-            }
-            if (response.data.mapa.nombre_largo === "2 meter temperature") {
-              setnombreLargo("2 metros");
-              setUnits("Celsius");
-            }
-            if (
-              response.data.mapa.time.includes("seconds") ||
-              response.data.mapa.time.includes("day")
-            ) {
-              setUnits("Celsius/day");
-            }
-            if (
-              response.data.mapa.available_dates.length > 0 &&
-              (response.data.mapa.nombre_largo ===
-                "mean daily maximum temperature" ||
-                response.data.mapa.nombre_largo ===
-                  "mean daily minimum temperature" ||
-                response.data.mapa.nombre_largo ===
-                  "daily mean 2-meter temperature")
-            ) {
-              for (
-                let i = 0;
-                i < response.data.mapa.available_dates.length;
-                i++
-              ) {
-                const date = new Date(response.data.mapa.available_dates[i]);
-                const month = (date.getMonth() + 1).toString().padStart(2, "0");
-                const year = date.getFullYear();
-                response.data.mapa.available_dates[i] = `${year}-${month}`;
-              }
-              setDates(response.data.mapa.available_dates);
+          setMostrarAlertaArchivo(false);
+          setTipoMensaje("info");
+          setLoading(false);
+          setFileConfirmed(true);
+          setMapaActualizado(true);
+          setEnableButton(true);
+          setValue("archivo", selectedFileName);
+          setT_max(response.data.mapa.t_max);
+          setCoordenadas(response.data.mapa.file);
+          setCalendario(true);
+          setUnits(response.data.mapa.units);
+          setT_min(response.data.mapa.t_min);
+          setTVariable('tmax');
+          setLonVariable('lon');
+          setLatVariable('lat');
+          setnombreLargo(response.data.mapa.nombre_largo);
 
-              const date = new Date(response.data.mapa.available_dates[1]);
+          if (response.data.mapa.nombre_largo === "Daily maximum temperature") {
+            setnombreLargo("diaria máxima");
+            setUnits("Celsius/day");
+          } else if (response.data.mapa.nombre_largo === "Daily minimum temperature") {
+            setnombreLargo("diaria mínima");
+            setUnits("Celsius/day");
+          } else if (response.data.mapa.nombre_largo === "2 meter temperature") {
+            setnombreLargo("2 metros");
+            setUnits("Celsius");
+          }
+
+          if (response.data.mapa.time.includes("seconds") || response.data.mapa.time.includes("day")) {
+            setUnits("Celsius/day");
+          }
+
+          if (response.data.mapa.available_dates.length > 0 && (
+            response.data.mapa.nombre_largo === "mean daily maximum temperature" ||
+            response.data.mapa.nombre_largo === "mean daily minimum temperature" ||
+            response.data.mapa.nombre_largo === "daily mean 2-meter temperature"
+          )) {
+            const availableDates = response.data.mapa.available_dates.map(dateStr => {
+              const date = new Date(dateStr);
               const month = (date.getMonth() + 1).toString().padStart(2, "0");
               const year = date.getFullYear();
-              setSelectedDate(`${year}-${month}`);
-            } else {
-              setDates(response.data.mapa.available_dates);
-              setSelectedDate(response.data.mapa.available_dates[0]);
-            }
-            if (
-              response.data.mapa.available_dates ===
-              "No time variable available"
-            ) {
-              setDates([]);
-            }
-        })
-    }
-    presetearArchivo();
-  }, []);
+              return `${year}-${month}`;
+            });
 
-  const handleOpenModal = () => setShowModal(true); 
+            setDates(availableDates);
+            setSelectedDate(availableDates[0]);
+          } else {
+            setDates(response.data.mapa.available_dates);
+            setSelectedDate(response.data.mapa.available_dates[0]);
+          }
+
+          if (response.data.mapa.available_dates === "No time variable available") {
+            setDates([]);
+          }
+
+          // Guardar los datos en el contexto para futuros usos
+          setTemperatureData(response.data);
+
+        } catch (error) {
+          console.error("Error al cargar el archivo:", error);
+          setLoading(false);
+          setMostrarAlertaArchivo(false);
+        }
+      };
+
+      presetearArchivo();
+    }
+  }, [temperatureData, setTemperatureData]);
+
+  const handleOpenModal = () => setShowModal(true);
   const handleCloseModal = () => setShowModal(false);
 
   const { handleSubmit, setValue } = useForm();
@@ -315,7 +366,6 @@ const Temperaturas = () => {
             ) {
               setDates([]);
             }
-
           }
         })
         .catch((error) => {
@@ -579,17 +629,21 @@ const Temperaturas = () => {
             </Button>
           </Modal.Footer>
         </Modal>
-        <div style={{
+        <div
+          style={{
             position: "fixed",
             top: "10px",
             left: "50%",
             transform: "translateX(-50%)",
-            zIndex: 1100, 
-            width: "80%", 
-            maxWidth: "500px", 
-          }}  className="error-message">
+            zIndex: 1100,
+            width: "80%",
+            maxWidth: "500px",
+          }}
+          className="error-message"
+        >
           {mostrarAlertaArchivo && (
-            <Alert dismissible
+            <Alert
+              dismissible
               variant={tipoMensaje}
               onClose={() => setMostrarAlertaArchivo(false)}
             >
@@ -597,17 +651,21 @@ const Temperaturas = () => {
             </Alert>
           )}
         </div>
-        <div style={{
+        <div
+          style={{
             position: "fixed",
             top: "10px",
             left: "50%",
             transform: "translateX(-50%)",
-            zIndex: 1100, 
+            zIndex: 1100,
             width: "80%",
             maxWidth: "500px",
-          }}  className="error-message">
+          }}
+          className="error-message"
+        >
           {mostrarAlertaTiempo && (
-            <Alert dismissible
+            <Alert
+              dismissible
               variant={tipoMensaje}
               onClose={() => setMostrarAlertaTiempo(false)}
             >
@@ -656,7 +714,9 @@ const Temperaturas = () => {
             >
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution={`Visualizando temperatura ${nombreLargo} de ${selectedDate} en el archivo que abarca desde ${dates[0]} hasta ${dates[dates.length - 1]}.`}
+                attribution={`Visualizando temperatura ${nombreLargo} de ${selectedDate} en el archivo que abarca desde ${
+                  dates[0]
+                } hasta ${dates[dates.length - 1]}.`}
               />
               <GeoTiffMap tiffUrl={coordenadas} />
 

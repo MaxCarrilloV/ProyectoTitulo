@@ -145,7 +145,6 @@ const presetearArchivoTemperatura = (archivo,req,res) => {
     console.log('Archivo copiado exitosamente.', nuevoNombre);
     let tiempo = 1;
     if (tiempo) {
-  
       const data = {
           archivo: rutaActual,
           numero_time: tiempo,

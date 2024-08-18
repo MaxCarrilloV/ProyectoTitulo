@@ -21,12 +21,12 @@ t_variable = input_obj['t_variable']
 lon_variable = input_obj['lon_variable']
 lat_variable = input_obj['lat_variable']
 colors = ['#00000000',  
-          '#8b00ff40',
-          '#0000ff40', 
-          '#00ff0040',
-          '#ffff0040', 
-          '#ff7f0040', 
-          '#ff000040' 
+          '#8b00ff60',
+          '#0000ff60', 
+          '#00ff0060',
+          '#ffff0060', 
+          '#ff7f0060', 
+          '#ff000060' 
           ]  
 
 cmap = ListedColormap(colors)

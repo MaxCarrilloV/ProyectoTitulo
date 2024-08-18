@@ -16,12 +16,12 @@ input_obj = json.loads(input_data)
 
 # Definir la escala de colores con mayor transparencia
 colors = ['#00000000',  
-          '#ff000040',  
-          '#ff7f0040',  
-          '#ffff0040',  
-          '#00ff0040',  
-          '#0000ff40',  
-          '#8b00ff40']  
+          '#ff000060',  
+          '#ff7f0060',  
+          '#ffff0060',  
+          '#00ff0060',  
+          '#0000ff60',  
+          '#8b00ff60']  
 
 cmap = ListedColormap(colors)
 
